@@ -31,6 +31,10 @@ CHRONO_BACKGD_COLOR = "#BCE2F2"
 TIMER_DIGITS_COLOR  = "#555555"
 TIMER_KEYS_COLOR    = CHRONO_KEYS_COLOR #"#666666"
 TIMER_BACKGD_COLOR  = "#BCF2CA"
+TIMER_DIG_ELP_COLOR = "#FFFFFF" # Timer elapsed
+TIMER_KEY_ELP_COLOR = "#CCCCCC" # Timer elapsed
+TIMER_BCK_ELP_COLOR = "#DD2222"
+KEYS_TEXT           = "c: chrono   t: timer   r: reset\ns: start   Alt+t: top-most"
 
 
 """
@@ -54,11 +58,11 @@ class ChronoApp:
         self.is_button_1 = False
 
         # Text definition
-        self.label_time = tk.Label(master, font=("DSEG7 Classic", 12), text='00:00:00')
+        self.label_time = tk.Label(master, font=("DSEG7 Classic", 11), text='00:00:00')
         self.label_time.config(fg=CHRONO_DIGITS_COLOR)
         self.label_time.config(bg=CHRONO_BACKGD_COLOR)
         self.label_time.pack(side="top", fill="both", expand=True)
-        self.label_keys = tk.Label(master, font=('Arial', 6), text="c: chrono   t: timer   r: reset\ns: start   Alt+t: top-most")
+        self.label_keys = tk.Label(master, font=('Arial', 5), text=KEYS_TEXT)
         self.label_keys.config(fg=CHRONO_KEYS_COLOR)
         self.label_keys.config(bg=CHRONO_BACKGD_COLOR)
         self.label_keys.pack(side="bottom", fill="both", expand=True)
@@ -103,14 +107,24 @@ class ChronoApp:
 
 
     def set_timer_mode(self):
-        print("timer")
         self.mode = 'timer'
+        # Set timer value
+        self.set_timer()
+
+
+    def set_timer_colors(self):
         self.label_time.config(fg=TIMER_DIGITS_COLOR)
         self.label_time.config(bg=TIMER_BACKGD_COLOR)
         self.label_keys.config(fg=TIMER_KEYS_COLOR)
         self.label_keys.config(bg=TIMER_BACKGD_COLOR)
         root.configure(background=TIMER_BACKGD_COLOR)
-        self.set_timer()
+
+    def set_timer_elapsed_colors(self):
+        self.label_time.config(fg=TIMER_DIG_ELP_COLOR)
+        self.label_time.config(bg=TIMER_BCK_ELP_COLOR)
+        self.label_keys.config(fg=TIMER_DIG_ELP_COLOR)
+        self.label_keys.config(bg=TIMER_BCK_ELP_COLOR)
+        root.configure(background=TIMER_BACKGD_COLOR)
 
 
     def set_chrono_mode(self,event):
@@ -121,6 +135,7 @@ class ChronoApp:
         self.label_keys.config(fg=CHRONO_KEYS_COLOR)
         self.label_keys.config(bg=CHRONO_BACKGD_COLOR)
         root.configure(background=CHRONO_BACKGD_COLOR)
+        self.label_keys.text = KEYS_TEXT
 
 
     def t_key(self,event):
@@ -133,31 +148,28 @@ class ChronoApp:
 
     def double_click(self, event):
         if self.mode == 'timer':
-            self.set_chrono_mode()
+            self.set_timer()
         else:
             self.set_timer_mode()
         
 
     def set_timer(self, event=None):
-        if self.mode == 'timer':
-            timer_input = simpledialog.askstring("Timer", "Enter time (HH:MM:SS):")
-            label_input = simpledialog.askstring("Label", "Enter time (HH:MM:SS):")
-            if timer_input:
-                try:
-                    parts = timer_input.split(':')
-                    parts = [int(part) for part in parts]
-                    if len(parts) == 1:  # If only seconds are provided
-                        self.original_timer_value = parts[0]
-                        self.elapsed_time = self.original_timer_value
-                    elif len(parts) == 2:  # If minutes and seconds are provided
-                        self.original_timer_value = parts[0]*60+parts[1]
-                        self.elapsed_time = self.original_timer_value
-                    elif len(parts) == 3:  # If hours, minutes, and seconds are provided
-                        self.original_timer_value = parts[0]*3600+parts[1]*60+parts[0]
-                        self.elapsed_time = self.original_timer_value
-                    self.update_display()
-                except (ValueError, IndexError):
-                    pass
+        self.set_timer_colors()
+        timer_input = simpledialog.askstring("Timer", "Enter time (HH:MM:SS):")
+        if timer_input:
+            try:
+                parts = timer_input.split(':')
+                parts = [int(part) for part in parts]
+                if len(parts) == 1:  # If only seconds are provided
+                    self.original_timer_value = parts[0]
+                elif len(parts) == 2:  # If minutes and seconds are provided
+                    self.original_timer_value = parts[0]*60+parts[1]
+                elif len(parts) == 3:  # If hours, minutes, and seconds are provided
+                    self.original_timer_value = parts[0]*3600+parts[1]*60+parts[0]
+                self.elapsed_time = 0
+                self.update_display()
+            except (ValueError, IndexError):
+                pass
 
 
     def toggle_start(self, event=None):
@@ -177,6 +189,7 @@ class ChronoApp:
                 self.update_time()
             else:
                 self.is_running = False
+                self.elapsed_time += (datetime.now().timestamp() - self.start_time)
                 self.update_display()
 
 
@@ -184,13 +197,14 @@ class ChronoApp:
         if self.mode == 'chrono':
             self.is_running = False
             self.start_time = None
-            self.elapsed_time = 0 #timedelta(seconds=0)
+            self.elapsed_time = 0
             self.update_display()
         elif self.mode == 'timer':
+            self.set_timer_colors()
             self.is_running = False
-            if self.original_timer_value is not None:
-                self.elapsed_time = self.original_timer_value
-                self.update_display()
+            self.start_time = None
+            self.elapsed_time = 0
+            self.update_display()
 
 
     def update_time(self):
@@ -198,12 +212,13 @@ class ChronoApp:
             if self.mode == 'chrono':
                 delta = self.elapsed_time + (datetime.now().timestamp() - self.start_time)
             elif self.mode == 'timer':
-                delta = self.elapsed_time - (datetime.now().timestamp() - self.start_time)
+                delta = self.original_timer_value - self.elapsed_time - (datetime.now().timestamp() - self.start_time)
                 delta = max(delta, 0)
 
                 # Stop the timer if it reaches zero
                 if delta == 0:
                     self.is_running = False
+                    self.set_timer_elapsed_colors()
 
             seconds = int(delta)
             minutes, seconds = divmod(seconds, 60)
@@ -215,9 +230,8 @@ class ChronoApp:
     def update_display(self):
         if self.mode == 'chrono':
             delta = self.elapsed_time
-            bg_color = CHRONO_BACKGD_COLOR
         elif self.mode == 'timer':
-            delta = self.elapsed_time - (datetime.now().timestamp() - self.start_time)
+            delta = self.original_timer_value - self.elapsed_time
             delta = max(delta, 0)
         seconds = int(delta)
         minutes, seconds = divmod(seconds, 60)
