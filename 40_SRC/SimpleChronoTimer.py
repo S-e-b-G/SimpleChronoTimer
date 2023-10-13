@@ -75,7 +75,7 @@ class ChronoApp:
         self.master.bind('<Button-3>',          self.reset)
         #self.master.bind('<space>',             self.toggle_start)
         self.master.bind('s',                   self.toggle_start)
-        self.master.bind('c',                   self.set_chrono_mode)
+        self.master.bind('c',                   self.c_key)
         self.master.bind('t',                   self.t_key)
         self.master.bind('r',                   self.reset)
 
@@ -127,15 +127,23 @@ class ChronoApp:
         root.configure(background=TIMER_BACKGD_COLOR)
 
 
-    def set_chrono_mode(self,event):
+    def set_chrono_mode(self):
         print("chrono")
         self.mode = 'chrono'
+        self.set_chrono_colors()
+        self.label_keys.text = KEYS_TEXT
+
+    def set_chrono_colors(self):
         self.label_time.config(fg=CHRONO_DIGITS_COLOR)
         self.label_time.config(bg=CHRONO_BACKGD_COLOR)
         self.label_keys.config(fg=CHRONO_KEYS_COLOR)
         self.label_keys.config(bg=CHRONO_BACKGD_COLOR)
         root.configure(background=CHRONO_BACKGD_COLOR)
-        self.label_keys.text = KEYS_TEXT
+
+
+    def c_key(self,event):
+        self.set_chrono_mode()
+        self.reset(event)
 
 
     def t_key(self,event):
@@ -172,25 +180,38 @@ class ChronoApp:
                 pass
 
 
+    def chrono_start(self):
+        self.is_running = True
+        self.start_time = datetime.now().timestamp()
+        self.update_time()
+    
+    def chrono_stop(self):
+        self.is_running = False
+        self.elapsed_time += (datetime.now().timestamp() - self.start_time)
+        self.update_display()
+    
+    def timer_start(self):
+        self.is_running = True
+        self.start_time = datetime.now().timestamp()
+        self.update_time()
+
+    def timer_stop(self):
+        self.is_running = False
+        self.elapsed_time += (datetime.now().timestamp() - self.start_time)
+        self.update_display()
+
+
     def toggle_start(self, event=None):
         if self.mode == 'chrono':
             if not self.is_running:
-                self.is_running = True
-                self.start_time = datetime.now().timestamp()
-                self.update_time()
+                self.chrono_start()
             else:
-                self.is_running = False
-                self.elapsed_time += (datetime.now().timestamp() - self.start_time)
-                self.update_display()
+                self.chrono_stop()
         elif self.mode == 'timer':
             if not self.is_running:
-                self.is_running = True
-                self.start_time = datetime.now().timestamp()
-                self.update_time()
+                self.timer_start()
             else:
-                self.is_running = False
-                self.elapsed_time += (datetime.now().timestamp() - self.start_time)
-                self.update_display()
+                self.timer_stop()
 
 
     def reset(self, event=None):
@@ -198,12 +219,14 @@ class ChronoApp:
             self.is_running = False
             self.start_time = None
             self.elapsed_time = 0
+            self.set_chrono_colors()
             self.update_display()
         elif self.mode == 'timer':
             self.set_timer_colors()
             self.is_running = False
             self.start_time = None
             self.elapsed_time = 0
+            self.set_timer_colors()
             self.update_display()
 
 
@@ -218,6 +241,10 @@ class ChronoApp:
                 # Stop the timer if it reaches zero
                 if delta == 0:
                     self.is_running = False
+                    #self.set_timer_elapsed_colors()
+                    # switch into chrono mode with timer elapsed colors
+                    self.set_chrono_mode()
+                    self.chrono_start()
                     self.set_timer_elapsed_colors()
 
             seconds = int(delta)
