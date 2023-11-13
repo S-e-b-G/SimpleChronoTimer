@@ -176,6 +176,7 @@ class ChronoApp:
                     self.original_timer_value = parts[0]*3600+parts[1]*60+parts[0]
                 self.elapsed_time = 0
                 self.update_display()
+                self.timer_start()
             except (ValueError, IndexError):
                 pass
 
