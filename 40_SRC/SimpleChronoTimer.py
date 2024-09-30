@@ -5,7 +5,7 @@
     INSTALLATION:
         pip install tkinter
         pip install pyautogui
-    
+
 """
 
 
@@ -19,6 +19,8 @@ from tkinter import simpledialog    # to display a dialog window
 from datetime import datetime       # for time management
 #from datetime import timedelta      # for time management
 import pyautogui                    # Mouse position
+import sys                          # To exit
+
 
 
 """
@@ -35,6 +37,13 @@ TIMER_DIG_ELP_COLOR = "#FFFFFF" # Timer elapsed
 TIMER_KEY_ELP_COLOR = "#CCCCCC" # Timer elapsed
 TIMER_BCK_ELP_COLOR = "#DD2222"
 KEYS_TEXT           = "c: chrono   t: timer   r: reset\ns: start   Alt+t: top-most"
+
+# Sizes
+FONT_SIZE_TIME      = 11
+FONT_SIZE_KEYS      = 5
+FONT_SIZE_INCR      = 1.25
+FONT_SIZE_DECR      = 0.8
+
 
 
 """
@@ -58,11 +67,17 @@ class ChronoApp:
         self.is_button_1 = False
 
         # Text definition
-        self.label_time = tk.Label(master, font=("DSEG7 Classic", 11), text='00:00:00')
+        self.font_size_time = FONT_SIZE_TIME
+        self.font_size_keys = FONT_SIZE_KEYS
+        self.label_time = tk.Label(master,
+                                   font=("DSEG7 Classic", self.font_size_time),
+                                   text='00:00:00')
         self.label_time.config(fg=CHRONO_DIGITS_COLOR)
         self.label_time.config(bg=CHRONO_BACKGD_COLOR)
         self.label_time.pack(side="top", fill="both", expand=True)
-        self.label_keys = tk.Label(master, font=('Arial', 5), text=KEYS_TEXT)
+        self.label_keys = tk.Label(master,
+                                   font=('Arial', self.font_size_keys),
+                                   text=KEYS_TEXT)
         self.label_keys.config(fg=CHRONO_KEYS_COLOR)
         self.label_keys.config(bg=CHRONO_BACKGD_COLOR)
         self.label_keys.pack(side="bottom", fill="both", expand=True)
@@ -78,6 +93,8 @@ class ChronoApp:
         self.master.bind('c',                   self.c_key)
         self.master.bind('t',                   self.t_key)
         self.master.bind('r',                   self.reset)
+        self.master.bind('+',                   self.font_size_increase)
+        self.master.bind('-',                   self.font_size_decrease)
 
         self.update_display()
 
@@ -103,7 +120,15 @@ class ChronoApp:
 
 
     def close_app(self, event):
-        self.master.quit()
+        """
+        Exits the application cleanly, closing all windows.
+        """
+        # self.master.quit()
+        self.master.quit()  # Quit the main event loop
+        self.master.destroy()  # Destroy the main window
+        sys.exit(0)  # Exit the program
+    # end of function
+
 
 
     def set_timer_mode(self):
@@ -159,14 +184,14 @@ class ChronoApp:
             self.set_timer()
         else:
             self.set_timer_mode()
-        
+
 
     def set_timer(self, event=None):
         self.set_timer_colors()
-        timer_input = simpledialog.askstring("Timer", "Enter time (HH:MM:SS):")
+        timer_input = simpledialog.askstring("Timer", "Enter time ([[HH.]MM.]SS):")
         if timer_input:
             try:
-                parts = timer_input.split(':')
+                parts = timer_input.split('.')
                 parts = [int(part) for part in parts]
                 if len(parts) == 1:  # If only seconds are provided
                     self.original_timer_value = parts[0]
@@ -185,12 +210,12 @@ class ChronoApp:
         self.is_running = True
         self.start_time = datetime.now().timestamp()
         self.update_time()
-    
+
     def chrono_stop(self):
         self.is_running = False
         self.elapsed_time += (datetime.now().timestamp() - self.start_time)
         self.update_display()
-    
+
     def timer_start(self):
         self.is_running = True
         self.start_time = datetime.now().timestamp()
@@ -229,6 +254,33 @@ class ChronoApp:
             self.elapsed_time = 0
             self.set_timer_colors()
             self.update_display()
+
+
+    def font_size_increase(self, event=None):
+        self.font_size_time *= FONT_SIZE_INCR
+        self.font_size_keys *= FONT_SIZE_INCR
+
+        self.label_time.config(font=("DSEG7 Classic", round(self.font_size_time)))
+        self.label_keys.config(font=('Arial', round(self.font_size_keys)))
+
+        # Allow the window to adjust its size based on the new font size
+        self.master.pack_propagate(True)
+
+        return
+
+
+    def font_size_decrease(self, event=None):
+        self.font_size_time *= FONT_SIZE_DECR
+        self.font_size_keys *= FONT_SIZE_DECR
+
+        self.label_time.config(font=("DSEG7 Classic", round(self.font_size_time)))
+        self.label_keys.config(font=('Arial', round(self.font_size_keys)))
+
+        # Allow the window to adjust its size based on the new font size
+        self.master.pack_propagate(True)
+
+        return
+
 
 
     def update_time(self):
