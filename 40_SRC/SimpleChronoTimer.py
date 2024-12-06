@@ -20,6 +20,7 @@ from datetime import datetime       # for time management
 #from datetime import timedelta      # for time management
 import pyautogui                    # Mouse position
 import sys                          # To exit
+from help_window import HelpWindow  # For the help window
 
 
 
@@ -75,12 +76,12 @@ class ChronoApp:
         self.label_time.config(fg=CHRONO_DIGITS_COLOR)
         self.label_time.config(bg=CHRONO_BACKGD_COLOR)
         self.label_time.pack(side="top", fill="both", expand=True)
-        self.label_keys = tk.Label(master,
-                                   font=('Arial', self.font_size_keys),
-                                   text=KEYS_TEXT)
-        self.label_keys.config(fg=CHRONO_KEYS_COLOR)
-        self.label_keys.config(bg=CHRONO_BACKGD_COLOR)
-        self.label_keys.pack(side="bottom", fill="both", expand=True)
+        # self.label_keys = tk.Label(master,
+        #                            font=('Arial', self.font_size_keys),
+        #                            text=KEYS_TEXT)
+        # self.label_keys.config(fg=CHRONO_KEYS_COLOR)
+        # self.label_keys.config(bg=CHRONO_BACKGD_COLOR)
+        # self.label_keys.pack(side="bottom", fill="both", expand=True)
 
         # Associate functions to events
         self.master.bind('<Button-1>',          self.press_button_1)
@@ -95,6 +96,7 @@ class ChronoApp:
         self.master.bind('r',                   self.reset)
         self.master.bind('+',                   self.font_size_increase)
         self.master.bind('-',                   self.font_size_decrease)
+        self.master.bind("<F1>",                self.open_help_window)
 
         self.update_display()
 
@@ -140,15 +142,15 @@ class ChronoApp:
     def set_timer_colors(self):
         self.label_time.config(fg=TIMER_DIGITS_COLOR)
         self.label_time.config(bg=TIMER_BACKGD_COLOR)
-        self.label_keys.config(fg=TIMER_KEYS_COLOR)
-        self.label_keys.config(bg=TIMER_BACKGD_COLOR)
+        # self.label_keys.config(fg=TIMER_KEYS_COLOR)
+        # self.label_keys.config(bg=TIMER_BACKGD_COLOR)
         root.configure(background=TIMER_BACKGD_COLOR)
 
     def set_timer_elapsed_colors(self):
         self.label_time.config(fg=TIMER_DIG_ELP_COLOR)
         self.label_time.config(bg=TIMER_BCK_ELP_COLOR)
-        self.label_keys.config(fg=TIMER_DIG_ELP_COLOR)
-        self.label_keys.config(bg=TIMER_BCK_ELP_COLOR)
+        # self.label_keys.config(fg=TIMER_DIG_ELP_COLOR)
+        # self.label_keys.config(bg=TIMER_BCK_ELP_COLOR)
         root.configure(background=TIMER_BACKGD_COLOR)
 
 
@@ -156,13 +158,13 @@ class ChronoApp:
         print("chrono")
         self.mode = 'chrono'
         self.set_chrono_colors()
-        self.label_keys.text = KEYS_TEXT
+        # self.label_keys.text = KEYS_TEXT
 
     def set_chrono_colors(self):
         self.label_time.config(fg=CHRONO_DIGITS_COLOR)
         self.label_time.config(bg=CHRONO_BACKGD_COLOR)
-        self.label_keys.config(fg=CHRONO_KEYS_COLOR)
-        self.label_keys.config(bg=CHRONO_BACKGD_COLOR)
+        # self.label_keys.config(fg=CHRONO_KEYS_COLOR)
+        # self.label_keys.config(bg=CHRONO_BACKGD_COLOR)
         root.configure(background=CHRONO_BACKGD_COLOR)
 
 
@@ -261,7 +263,7 @@ class ChronoApp:
         self.font_size_keys *= FONT_SIZE_INCR
 
         self.label_time.config(font=("DSEG7 Classic", round(self.font_size_time)))
-        self.label_keys.config(font=('Arial', round(self.font_size_keys)))
+        # self.label_keys.config(font=('Arial', round(self.font_size_keys)))
 
         # Allow the window to adjust its size based on the new font size
         self.master.pack_propagate(True)
@@ -274,7 +276,7 @@ class ChronoApp:
         self.font_size_keys *= FONT_SIZE_DECR
 
         self.label_time.config(font=("DSEG7 Classic", round(self.font_size_time)))
-        self.label_keys.config(font=('Arial', round(self.font_size_keys)))
+        # self.label_keys.config(font=('Arial', round(self.font_size_keys)))
 
         # Allow the window to adjust its size based on the new font size
         self.master.pack_propagate(True)
@@ -317,6 +319,16 @@ class ChronoApp:
         minutes, seconds = divmod(seconds, 60)
         hours, minutes = divmod(minutes, 60)
         self.label_time.config(text=f'{hours:02d}:{minutes:02d}:{seconds:02d}')
+
+
+    def open_help_window(self, event=None): # pylint: disable=unused-argument
+        """
+        Open the help window.
+        """
+        HelpWindow(self.master)
+
+        return
+    # end of function
 
 
 
