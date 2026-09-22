@@ -1,3 +1,4 @@
 
 *.lnk
 50_BUILD/*
+*.pyc

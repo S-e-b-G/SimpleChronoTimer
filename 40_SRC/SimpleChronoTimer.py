@@ -40,7 +40,7 @@ TIMER_BCK_ELP_COLOR = "#DD2222"
 KEYS_TEXT           = "c: chrono   t: timer   r: reset\ns: start   Alt+t: top-most"
 
 # Sizes
-FONT_SIZE_TIME      = 11
+FONT_SIZE_TIME      = 30
 FONT_SIZE_KEYS      = 5
 FONT_SIZE_INCR      = 1.25
 FONT_SIZE_DECR      = 0.8
@@ -66,6 +66,7 @@ class ChronoApp:
         self.original_timer_value = None
         self.mode = 'chrono'  # 'chrono' or 'timer'
         self.is_button_1 = False
+        self.after_id = None
 
         # Text definition
         self.font_size_time = FONT_SIZE_TIME
@@ -99,6 +100,8 @@ class ChronoApp:
         self.master.bind("<F1>",                self.open_help_window)
 
         self.update_display()
+        # Kick off the single perpetual display-update loop (runs regardless of is_running)
+        self.update_time()
 
 
     def press_button_1(self, event):
@@ -188,19 +191,60 @@ class ChronoApp:
             self.set_timer_mode()
 
 
+    def split_timer(self, timer_str: str) -> list:
+        """
+        Split a timer string into 2-character parts, grouping from the right.
+        Example: "100" → ['1', '00']
+        """
+        # Split into individual characters
+        chars = list(timer_str)
+
+        # Group into pairs from the right
+        parts = []
+        while chars:
+            if len(chars) >= 2:
+                parts.insert(0, ''.join(chars[-2:]))  # Take last 2 chars
+                chars = chars[:-2]  # Remove the last 2 chars
+            else:
+                parts.insert(0, ''.join(chars))  # Take remaining chars
+                chars = []  # Clear the list
+
+        return parts
+
+
     def set_timer(self, event=None):
+        # Stop any running countdown first, so the background update loop can't
+        # race with this mode/value change while the modal dialog is open.
+        self.is_running = False
         self.set_timer_colors()
         timer_input = simpledialog.askstring("Timer", "Enter time ([[HH.]MM.]SS):")
         if timer_input:
             try:
                 parts = timer_input.split('.')
-                parts = [int(part) for part in parts]
+                #
                 if len(parts) == 1:  # If only seconds are provided
-                    self.original_timer_value = parts[0]
-                elif len(parts) == 2:  # If minutes and seconds are provided
-                    self.original_timer_value = parts[0]*60+parts[1]
-                elif len(parts) == 3:  # If hours, minutes, and seconds are provided
-                    self.original_timer_value = parts[0]*3600+parts[1]*60+parts[0]
+                    # self.original_timer_value = parts[0]
+                    l_timer_parts = self.split_timer(parts[0])
+                    if(len(l_timer_parts)==1): # Secs only
+                        self.original_timer_value = int(l_timer_parts[0])
+                    elif(len(l_timer_parts)==2): # Min, sec
+                        self.original_timer_value = (60*int(l_timer_parts[0]) +
+                                                     int(l_timer_parts[1]))
+                    else: # Hr, Min, Sec
+                        self.original_timer_value = (3600*int(l_timer_parts[0]) +
+                                                       60*int(l_timer_parts[1]) +
+                                                          int(l_timer_parts[2]) )
+                else:
+                    parts = [int(part) for part in parts]
+                    if len(parts) == 2:  # If minutes and seconds are provided
+                        self.original_timer_value = parts[0]*60+parts[1]
+                    elif len(parts) == 3:  # If hours, minutes, and seconds are provided
+                        self.original_timer_value = parts[0]*3600+parts[1]*60+parts[2]
+                #end if
+
+                # Add 1 second so that the timer displays the full time
+                # before starting to count down
+                self.original_timer_value += 1
                 self.elapsed_time = 0
                 self.update_display()
                 self.timer_start()
@@ -211,7 +255,7 @@ class ChronoApp:
     def chrono_start(self):
         self.is_running = True
         self.start_time = datetime.now().timestamp()
-        self.update_time()
+        self.realign_update_loop()
 
     def chrono_stop(self):
         self.is_running = False
@@ -221,7 +265,7 @@ class ChronoApp:
     def timer_start(self):
         self.is_running = True
         self.start_time = datetime.now().timestamp()
-        self.update_time()
+        self.realign_update_loop()
 
     def timer_stop(self):
         self.is_running = False
@@ -285,6 +329,13 @@ class ChronoApp:
 
 
 
+    def realign_update_loop(self):
+        """Cancel any pending tick and refresh now, so ticks stay aligned to start_time."""
+        if self.after_id is not None:
+            self.master.after_cancel(self.after_id)
+            self.after_id = None
+        self.update_time()
+
     def update_time(self):
         if self.is_running:
             if self.mode == 'chrono':
@@ -299,14 +350,15 @@ class ChronoApp:
                     #self.set_timer_elapsed_colors()
                     # switch into chrono mode with timer elapsed colors
                     self.set_chrono_mode()
-                    self.chrono_start()
+                    self.chrono_start()  # already realigns/reschedules the tick loop
                     self.set_timer_elapsed_colors()
+                    return
 
             seconds = int(delta)
             minutes, seconds = divmod(seconds, 60)
             hours, minutes = divmod(minutes, 60)
             self.label_time.config(text=f'{hours:02d}:{minutes:02d}:{seconds:02d}')
-        self.master.after(1000, self.update_time)
+        self.after_id = self.master.after(1000, self.update_time)
 
 
     def update_display(self):
